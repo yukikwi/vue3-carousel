@@ -352,7 +352,7 @@ export default defineComponent({
       const direction = config.dir === 'rtl' ? -1 : 1
       const xScroll = slidesToScroll.value * slideWidth.value * direction
       return {
-        transform: `translateX(${dragged.x - xScroll}px)`,
+        transform: `translate3D(${dragged.x - xScroll}px, 0, 0)`,
         transition: `${isSliding.value ? config.transition : 0}ms`,
         margin: config.wrapAround ? `0 -${slidesCount.value * slideWidth.value}px` : '',
         width: `100%`,
