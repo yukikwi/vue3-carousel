@@ -46,7 +46,7 @@ export default [
     external: [/\.css$/],
     plugins: [
       typescriptPaths({ preserveExtensions: true }),
-      dts(),
+      dts.default(),
       del({ hook: 'buildEnd', targets: 'dist/dts', runOnce: true }),
     ],
   },
