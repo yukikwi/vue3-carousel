@@ -37,6 +37,7 @@ export default defineComponent({
   props: carouselProps,
   setup(props: CarouselConfig, { slots, emit, expose }: SetupContext) {
     const root: Ref<Element | null> = ref(null)
+    const carouselTrack: Ref<null | HTMLOListElement> = ref(null);
     const slides: Ref<any> = ref([])
     const slideWidth: Ref<number> = ref(0)
     const slidesCount: Ref<number> = ref(0)
@@ -169,6 +170,7 @@ export default defineComponent({
     let isTouch = false
     const startPosition = { x: 0, y: 0 }
     const endPosition = { x: 0, y: 0 }
+    const carouselSize = { width: 0, height: 0 }
     const dragged = reactive({ x: 0, y: 0 })
     const isHover = ref(false)
     const isDragging = ref(false)
@@ -197,6 +199,11 @@ export default defineComponent({
       startPosition.x = isTouch ? event.touches[0].clientX : event.clientX
       startPosition.y = isTouch ? event.touches[0].clientY : event.clientY
 
+      if(carouselTrack.value !== null) {
+          carouselSize.width = carouselTrack.value.offsetWidth
+          carouselSize.height = carouselTrack.value.offsetHeight
+      } 
+
       document.addEventListener(isTouch ? 'touchmove' : 'mousemove', handleDragging, true)
       document.addEventListener(isTouch ? 'touchend' : 'mouseup', handleDragEnd, true)
     }
@@ -208,17 +215,21 @@ export default defineComponent({
       endPosition.y = isTouch ? event.touches[0].clientY : event.clientY
       const deltaX = endPosition.x - startPosition.x
       const deltaY = endPosition.y - startPosition.y
+      
+      dragged.y = deltaY * 100 / carouselSize.height
+      dragged.x = deltaX * 100 / carouselSize.width
 
-      dragged.y = deltaY
-      dragged.x = deltaX
+      if(Math.abs(deltaY) > Math.abs(deltaX)){
+          handleDragEnd()
+      }
     }, config.throttle)
 
     function handleDragEnd(): void {
       const direction = config.dir === 'rtl' ? -1 : 1
-      const tolerance = Math.sign(dragged.x) * 0.4
+      const tolerance = Math.sign((dragged.x * carouselSize.width / 100)) * 0.4;
       const draggedSlides =
-        Math.round(dragged.x / slideWidth.value + tolerance) * direction
-
+        Math.round((dragged.x * carouselSize.width / 100) / slideWidth.value + tolerance) * direction;
+            
       // Prevent clicking if there is clicked slides
       if (draggedSlides && !isTouch) {
         const captureClick = (e: MouseEvent) => {
@@ -350,9 +361,9 @@ export default defineComponent({
 
     const trackStyle = computed((): ElementStyleObject => {
       const direction = config.dir === 'rtl' ? -1 : 1
-      const xScroll = slidesToScroll.value * slideWidth.value * direction
+      const xScroll = slidesToScroll.value * slideWidth.value * direction * 100 / carouselSize.width;
       return {
-        transform: `translate3D(${dragged.x - xScroll}px, 0, 0)`,
+        transform: `translate3D(${dragged.x - xScroll}%, 0, 0)`,
         transition: `${isSliding.value ? config.transition : 0}ms`,
         margin: config.wrapAround ? `0 -${slidesCount.value * slideWidth.value}px` : '',
         width: `100%`,
@@ -451,6 +462,7 @@ export default defineComponent({
       const trackEl = h(
         'ol',
         {
+          ref: carouselTrack, 
           class: 'carousel__track',
           style: trackStyle.value,
           onMousedownCapture: config.mouseDrag ? handleDragStart : null,
